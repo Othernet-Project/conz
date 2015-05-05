@@ -75,7 +75,7 @@ class Color:
     @staticmethod
     def _esc(code):
         isatty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
-        if sys.platform in ['PocketPC', 'win32'] and not isatty:
+        if sys.platform in ['PocketPC', 'win32'] or not isatty:
             return ''
         if os.getenv('ANSI_COLORS_DISABLED'):
             return ''
