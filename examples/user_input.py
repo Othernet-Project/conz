@@ -34,3 +34,24 @@ note('We again use a valiator, but we also provide a default')
 val = cn.rvpl('Enter a number greater than 12 [15]:', clean=conz.safeint,
               validator=lambda x: x > 12, strict=False, default=15)
 show(val)
+
+# With intro
+val = cn.rvpl('Enter some value:', intro='This is the intro text. It is '
+              'line-wrapped at terminal width.')
+show(val)
+
+# With yesno
+val = cn.yesno('Yes or no?')
+show(val)
+
+# Yesno with Yes as default
+val = cn.yesno('Yes or no?', default=True)
+show(val)
+
+# Yesno with No as default
+val = cn.yesno('Yes or no?', default=False)
+show(val)
+
+# Yesno with intro
+val = cn.yesno('Yes or no?', intro='You always liked command line.')
+show(val)
