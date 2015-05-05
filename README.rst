@@ -18,7 +18,11 @@ conz has following features:
 Installing
 ==========
 
-TODO
+You can install conz from PyPI using pip or easy_install::
+
+    pip install conz
+
+    easy_install conz
 
 Quick tour
 ==========
