@@ -13,6 +13,7 @@ from __future__ import print_function
 import os
 import sys
 import signal
+import textwrap
 import contextlib
 
 
@@ -124,6 +125,25 @@ class Color:
 
 
 color = Color()
+
+
+def rewrap(s, width=79):
+    """ Join all lines from input string and wrap it at specified width """
+    s = ' '.join([l.strip() for l in s.strip().split('\n')])
+    return '\n'.join(textwrap.wrap(s, width))
+
+
+def striplines(s):
+    """ Strip whitespace from each line of input string """
+    return '\n'.join([l.strip() for l in s.strip().split('\n')])
+
+
+def safeint(s):
+    """ Convert the string to int without raising errors """
+    try:
+        return int(s.strip())
+    except (TypeError, ValueError):
+        return None
 
 
 class Progress:
@@ -269,6 +289,94 @@ class Console:
         """
         ans = read(prompt + ' ')
         return clean(ans)
+
+    def rvpl(self, prompt, error='Entered value is invalid',
+             validator=lambda x: x != '', clean=lambda x: x.strip(),
+             strict=True, default=None):
+        """ Start a read-validate-print loop
+
+        The RVPL will read the user input, validate it, and loop until the
+        entered value passes the validation, then return it.
+
+        Error message can be customized using the ``error`` argument. If the
+        value is a callable, it will be called with the value and it will be
+        expected to return a printable message. Exceptions raised by the
+        ``error`` function are not trapped.
+
+        The ``validator`` argument is is a function that validates the user
+        input. Default validator simply validates if user entered any value.
+
+        The ``clean`` argument specifies a function for the ``read()`` method
+        with the same semantics.
+        """
+        val = self.read(prompt, clean)
+        while not validator(val):
+            if not strict:
+                return default
+            if hasattr(error, '__call__'):
+                self.perr(error(val))
+            else:
+                self.perr(error)
+            val = self.read(prompt, clean)
+        return val
+
+    def menu(self, choices, prompt='Please choose from the provided options:',
+             error='Invalid choice', intro=None, strict=True, default=None,
+             formatter=lambda x, y: '{0:>3}) {1}'.format(x, y),
+             numerator=lambda x: [i + 1 for i in range(x)],
+             clean=safeint):
+        """ Print a menu
+
+        The choices must be an iterable of two-tuples where the first value is
+        the value of the menu item, and the second is the label for that
+        matches the value.
+
+        The menu will be printed with numeric choices. For example::
+
+            1) foo
+            2) bar
+
+        Formatting of the number is controlled by the formatter function which
+        can be overridden by passing the ``formatter`` argument.
+
+        The numbers used for the menu are generated using the numerator
+        function which can be specified using the ``numerator`` function. This
+        funciton must take the number of choices and retrun the same number of
+        items that will be used as choice characters as a list.
+
+        The cleaner function is passed to ``pvpl()`` method can be customized
+        using ``clean`` argument. This function should generally be customized
+        whenever ``numerator`` is customized, as default cleaner converts
+        input to integers to match the default numerator.
+
+        Optional ``intro`` argument can be passed to print a message above the
+        menu.
+
+        The return value of this method is the value user has chosen. The
+        prompt will keep asking the user for input until a valid choice is
+        selected. Each time an invalid selection is made, error message is
+        printed. This message can be customized using ``error`` argument.
+
+        If ``strct`` argument is set, then only values in choices are allowed,
+        otherwise any value will be allowed. The ``default`` argument can be
+        used to define what value is returned in case user select an invalid
+        value when strict checking is off.
+        """
+        numbers = list(numerator(len(choices)))
+        labels = (label for _, label in choices)
+        values = [value for value, _ in choices]
+        # Print intro and menu itself
+        if intro:
+            self.pstd('\n' + rewrap(intro))
+        for n, label in zip(numbers, labels):
+            self.pstd(formatter(n, label))
+        # Define the validator
+        validator = lambda x: x in numbers
+        val = self.rvpl(prompt, error=error, validator=validator, clean=clean,
+                        strict=strict, default=default)
+        if not strict:
+            return val
+        return values[numbers.index(val)]
 
     def readpipe(self, chunk=None):
         """ Return iterator that iterates over STDIN line by line
