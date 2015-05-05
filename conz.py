@@ -290,7 +290,7 @@ class Console:
         ans = read(prompt + ' ')
         return clean(ans)
 
-    def rvpl(self, prompt, error='Entered value is invalid',
+    def rvpl(self, prompt, error='Entered value is invalid', intro=None,
              validator=lambda x: x != '', clean=lambda x: x.strip(),
              strict=True, default=None):
         """ Start a read-validate-print loop
@@ -303,12 +303,16 @@ class Console:
         expected to return a printable message. Exceptions raised by the
         ``error`` function are not trapped.
 
+        When ``intro`` is passed, it is printed above the prompt.
+
         The ``validator`` argument is is a function that validates the user
         input. Default validator simply validates if user entered any value.
 
         The ``clean`` argument specifies a function for the ``read()`` method
         with the same semantics.
         """
+        if intro:
+            self.pstd(rewrap_long(intro))
         val = self.read(prompt, clean)
         while not validator(val):
             if not strict:
