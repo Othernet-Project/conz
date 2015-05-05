@@ -22,6 +22,7 @@ __author__ = 'Outernet Inc'
 
 
 BORING_PLATFORMS = ['PocketPC', 'win32']
+COLS = os.getenv('COLUMNS', 79)
 
 
 try:
@@ -127,10 +128,16 @@ class Color:
 color = Color()
 
 
-def rewrap(s, width=79):
+def rewrap(s, width=COLS):
     """ Join all lines from input string and wrap it at specified width """
     s = ' '.join([l.strip() for l in s.strip().split('\n')])
     return '\n'.join(textwrap.wrap(s, width))
+
+
+def rewrap_long(s, width=COLS):
+    """ Rewrap longer texts with paragraph breaks (two consecutive LF) """
+    paras = s.split('\n\n')
+    return '\n\n'.join(rewrap(p) for p in paras)
 
 
 def striplines(s):
@@ -324,6 +331,37 @@ class Console:
             val = self.read(prompt, clean)
         return val
 
+    def yesno(self, prompt, error='Please type either y or n', intro=None,
+              default=None):
+        """ Ask user for yes or no answer
+
+        The prompt will include a typical '(y/n):' at the end. Depending on
+        whether ``default`` was specified, this may also be '(Y/n):' or
+        '(y/N):'.
+
+        The ``default`` argument can be ``True`` or ``False``, with meaning of
+        'yes' and 'no' respectively. Default is ``None`` which means no
+        default. When default value is specified, malformed or empty response
+        will cause the ``default`` value to be returned.
+
+        Optional ``intro`` text can be specified which will be shown above the
+        prompt.
+        """
+        if default is None:
+            prompt += ' (y/n):'
+        else:
+            if default is True:
+                prompt += ' (Y/n):'
+                default = 'y'
+            if default is False:
+                prompt += ' (y/N):'
+                default = 'n'
+        validator = lambda x: x in ['y', 'yes', 'n', 'no']
+        val = self.rvpl(prompt, error=error, intro=intro, validator=validator,
+                        clean=lambda x: x.strip().lower(),
+                        strict=default is None, default=default)
+        return val in ['y', 'yes']
+
     def menu(self, choices, prompt='Please choose from the provided options:',
              error='Invalid choice', intro=None, strict=True, default=None,
              formatter=lambda x, y: '{0:>3}) {1}'.format(x, y),
@@ -371,7 +409,7 @@ class Console:
         values = [value for value, _ in choices]
         # Print intro and menu itself
         if intro:
-            self.pstd('\n' + rewrap(intro))
+            self.pstd('\n' + rewrap_long(intro))
         for n, label in zip(numbers, labels):
             self.pstd(formatter(n, label))
         # Define the validator
