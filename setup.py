@@ -2,7 +2,7 @@
 
 import os
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
 SCRIPTDIR = os.path.dirname(__file__) or '.'
 PY3 = sys.version_info >= (3, 0, 0)
@@ -32,7 +32,7 @@ setup(
     keywords='console, terminal, signals, output, command line, colorizing',
     url='https://github.com/Outernet-Project/conz',
     long_description=read('README.rst'),
-    py_modules=['conz'],
+    packages=find_packages(),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Topic :: Software Development :: Libraries :: Application Frameworks',
