@@ -342,7 +342,7 @@ class Console:
         except KeyboardInterrupt:
             raise
         except excs as err:
-            self.abrt(noraise=True)
+            prog.abrt(noraise=True)
             if onerror:
                 onerror(err)
             if reraise:
