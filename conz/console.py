@@ -164,8 +164,8 @@ class Console:
 
     def menu(self, choices, prompt='Please choose from the provided options:',
              error='Invalid choice', intro=None, strict=True, default=None,
-             formatter=lambda x, y: '{0:>3}) {1}'.format(x, y),
              numerator=lambda x: [i + 1 for i in range(x)],
+             formatter=lambda x, y: '{0:>3}) {1}'.format(x, y),
              clean=utils.safeint):
         """ Print a menu
 
