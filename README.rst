@@ -48,6 +48,38 @@ A quick tour example can be found in ``examples/quicktour.py``::
     data = cn.read('Type something in:')
     cn.pstd('You typed in {}'.format(cn.color.yellow(data, style='italic')))
 
+Formatting conventions
+======================
+
+Because this library deals with terminal output a lot, we have to somehow tell
+when something is terminal output and when it is code. Because of this, we use
+lines to delimit console output. For example::
+
+    ----------------------------------------------
+    I'm a sample output
+    ----------------------------------------------
+
+When output is to the STDERR, 'E' will be shown in the right corner.::
+ 
+    ---------------------------------------------E
+    I'm a sample error
+    ----------------------------------------------
+
+When user enters data, the Entered data will be followed by ``<Enter>`` and the
+right corner will include the 'I' character (for 'interactive session')::
+
+    ---------------------------------------------I
+    Prompt: some data<Enter>
+    ----------------------------------------------
+
+When value is returned from user input, the value is printed right below the
+output preceeded by ``==>``::
+
+    ---------------------------------------------I
+    Prompt: some data<Enter>
+    ----------------------------------------------
+    ==> 'some data'
+
 Usage
 =====
 
@@ -76,13 +108,17 @@ as ``print()`` function, with the exception of ``file`` keyword argument which
 is set by this method and cannot be overridden. ::
 
     cn.pstd('This always goes to STDOUT', end='...')
-    out: This always goes to STDOUT
+    ----------------------------------------------
+    This always goes to STDOUT
+    ----------------------------------------------
 
 To output to STDERR, we use the ``perr()`` method. As with ``pstd()``, it
 overrides the ``file`` argument for us. ::
 
     cn.perr('Mayday, mayday!')
-    err: Mayday, mayday!
+    ---------------------------------------------E
+    Mayday, mayday!
+    ----------------------------------------------
 
 The main difference between regular ``print()`` and ``pstd()``/``perr()``
 methods is that the latter will flush the STDOUT/STDERR after writing to it.
@@ -94,7 +130,9 @@ STDERR. The ``pverr()`` method takes a value and a message, and prints then in
 
     path = '/foo/bar/baz.txt'
     cn.verr(path, 'not found')
-    err: /foo/bar/baz.txt: not found
+    ---------------------------------------------E
+    /foo/bar/baz.txt: not found
+    ----------------------------------------------
 
 A variant of ``pstd()`` is ``pverb()``. It is exactly the same as ``pstd()``,
 except that it only outputs when ``verbose`` flag on the ``Console`` object is
@@ -104,11 +142,15 @@ or wish to have a ``--verbose`` switch, etc. ::
 
     cn.verbose = True
     cn.pverb("I'm a talkative program")
-    out: I'm a talkative program
+    ----------------------------------------------
+    I'm a talkative program
+    ----------------------------------------------
 
     cn.verbose = False
     cn.pverb("I'm a talkative program")
-    out: 
+    ----------------------------------------------
+
+    ----------------------------------------------
 
 The ``verbose`` flag can be set either as an argument during instantiation, or
 simply by setting the attribute as in the previous example.
@@ -180,8 +222,9 @@ When you pass the ``clean`` argument, user input is passed through the function
 before it is retuned. For example::
 
     cn.read('Exit? [y/N] ', clean=lambda x: x.lower()[:1] == 'y')
-    out: Exit? [y/N] _
-    in: y
+    ---------------------------------------------I
+    Exit? [y/N] y<Enter>
+    ----------------------------------------------
     ==> True
 
 Note that this method uses ``raw_input()`` on Python 2.7.x and ``input()`` on
@@ -216,6 +259,176 @@ If we need to know whether input will come from a pipe or not, we can use the
     else:
         # we are on the receiving end of a pipe
 
+Advanced interactive input
+--------------------------
+
+So far we have looked at simpe user input. However in most cases, input is not
+the only thing we want. We normally also need to show notes, validate the
+input, construct menus, etc. The ``Console`` class provides three methods that
+are useful for different scenarios.
+
+You will find examples of code discussed here in ``examples/user_input.py`` and
+``examples/menu.py``.
+
+RVPL
+~~~~
+
+RVPL (pead validate print loop) is a loop in which some data is read from the
+user, validated, and error message printed. This loop continues as long as data
+is invalid. The ``rvpl()`` method is used to start such a loop.
+
+At bare minimum, ``rvpl()`` is called with a prompt that should be shown to the
+user. ::
+
+    cn.rvpl('Please enter your name:')
+    ---------------------------------------------I
+    Please enter your name: My name<enter>
+    ----------------------------------------------
+    ==> 'My name'
+
+Like ``read()``, ``rvpl()`` also takes a ``clean`` argument, which is used to
+control how the value is cleaned. In addition, it takes ``validator`` argument,
+which is a function that validates the cleaned data. The default validator
+simply makes sure the input is not an empty string.
+
+For invalid input, error message is displayed::
+
+    cn.rvpl('Please enter your name:')
+    ---------------------------------------------I
+    Please enter your name: <Enter>
+    Entered value is invalid
+    Please enter your name: Mike<Enter>
+    ----------------------------------------------
+    ==> 'Mike'
+
+Error message can be customized using the ``error`` argument. If ``error``
+argument is is a callable, it will be called with entered value and it must 
+return the message to be shown. ::
+
+    valid_input = ('a', 'b', 'c')
+    error = lambda x: '{} is not one of the {}'.format(
+        x, ', '.join(valid_input))
+    validator = lambda x: x in valid_input
+    cn.rvpl('Type one of the first 3 characters of English alphabet:')
+    ---------------------------------------------I
+    Type one of the first 3 characters of English alphabet: e<Enter>
+    e is not one of the a, b, c
+    Type one of the first 3 characters of English alphabet: b<Enter>
+    ----------------------------------------------
+    ==> 'b'
+
+An intro message can be passed which is shown above the prompt. Unlinke the
+prompt itself, intro message is not repeated in the loop. ::
+
+    cn.rvpl('>', intro='Please enter your name:')
+    ---------------------------------------------I
+    Please enter your name: 
+    > <Enter>
+    Entered value is invalid
+    > Mike<Enter>
+    ----------------------------------------------
+    ==> 'Mike'
+
+When requesting optional input, the strict validation can be turned off using
+the ``strict`` argument. When this argument is ``False``, then the loop exists
+even when validation fails. The value returned when validation fails is
+controlled by ``default`` argument, which defaults to ``None``. ::
+
+    cn.rvpl('Please enter your name:', strict=False, default='Bob')
+    ---------------------------------------------I
+    Please enter your name: <Enter>
+    ----------------------------------------------
+    ==> 'Bob'
+
+Yes/No input
+~~~~~~~~~~~~
+
+The ``yesno()`` method provides a specialized version the RVPL limited to yes
+and no answer, and returnin ``True`` or ``False``. ::
+
+    cn.yesno('Are you all right?')
+    ---------------------------------------------I
+    Are you all right? (y/n): y<Enter>
+    ----------------------------------------------
+    ==> True
+
+The prompt passed to ``yesno()`` is automatically appended the '(y/n):' string.
+The appearance of this string depends on the default value discussed further
+below.
+
+Since it is a wrapper around ``rvpl()`` it takes the same ``error`` and
+``intro`` arguments which behave the same way.
+
+Although it takes the ``default`` argument like ``rvpl()``, the behavior is
+different. When ``default`` is ``None`` it automatically turns on strict
+validation. The argument can also be either ``True`` or ``False``, in which
+case the default value is respectively 'yes' and 'no'. ::
+
+    cn.yesno('Are you all right?', default=True)
+    ---------------------------------------------I
+    Are you all right? (Y/n): <Enter>
+    ----------------------------------------------
+    ==> True
+    
+    cn.yesno('Are you all right?', default=False
+    ---------------------------------------------I
+    Are you all right? (y/N): <Enter>
+    ----------------------------------------------
+    ==> False
+
+Menu
+~~~~
+
+Menu is another specialization of the RVPL, used for displaying menus. This is
+facilitated by the ``menu()`` method. 
+
+This method has only one required argument, which is an iterable of menu
+choices. Each member of the iterable must be a two-tuple which holds the actual
+value as first member and the value's label as second. For example::
+
+    choices = (('f', 'foo'), ('b', 'bar'))
+    cn.menu(choices)
+    ---------------------------------------------I
+      1) foo
+      2) bar
+    Please choose from the provided options: 1<Enter>
+    ----------------------------------------------
+    ==> 'f'
+
+Almost all aspects of the menu can be customized. The ``prompt``, ``error``,
+``intro``, ``strict`` and ``default`` behave the same way as in regular RVPL so
+we will not discuss them in detail here.
+
+Display of the menu items themselves is controlled by two arguments:
+``formatter`` and ``numerator``.
+
+``numerator`` argument controls how the enumeration of the menu items is done.
+It takes the number of menu items as its only argument, and must return a list
+of strings to be used as options. For example::
+
+    choices = (('f', 'foo'), ('b', 'bar'))
+    numer = lambda n: ('abcd'[i] for i in range(n), numerator=numer)
+    cn.menu(choices)
+    ---------------------------------------------I
+      a) foo
+      b) bar
+    Please choose from the provided options: a<Enter>
+    ----------------------------------------------
+    ==> 'f'
+
+``formatter`` takes the number of the item and item's label and must return a
+formatted menu item. For example::
+
+    choices = (('f', 'foo'), ('b', 'bar'))
+    fmt = lambda n, lbl: '{} ({})'.format(lbl, n)
+    cn.menu(choices, formatter=fmt)
+    ---------------------------------------------I
+    foo (1)
+    bar (2)
+    Please choose from the provided options: 1<Enter>
+    ----------------------------------------------
+    ==> 'f'
+
 Working with progress
 ---------------------
 
@@ -241,11 +454,15 @@ an attribute on ``Console`` objects for convenience.) If everything goes well,
 then the success banner will be printed. With the previous code snippet, sucess
 output may look like this::
 
+    ----------------------------------------------
     Let's get this show on the road...DONE
+    ----------------------------------------------
 
 And failure would look like this::
 
+    ----------------------------------------------
     Let's get this show on the road...FAIL
+    ----------------------------------------------
 
 The end banners can be customized by using the ``end`` and ``abrt`` arguments::
 
@@ -254,9 +471,15 @@ The end banners can be customized by using the ``end`` and ``abrt`` arguments::
 
 The outputs would look like this::
 
+    ----------------------------------------------
     Almost there...finally!
+    ----------------------------------------------
 
+or::
+
+    ----------------------------------------------
     Almost there...awww, bummer
+    ----------------------------------------------
 
 The elipsis (three dots) can be customized using the ``sep`` argument::
 
@@ -265,9 +488,15 @@ The elipsis (three dots) can be customized using the ``sep`` argument::
 
 This results in::
 
+    ----------------------------------------------
     File check: DONE
+    ----------------------------------------------
 
+or::
+
+    ----------------------------------------------
     File check: FAIL
+    ----------------------------------------------
 
 By default, the progress context manager will trap any exception. This may or
 may not make sense for a particular situation. This behavior can therefore be
@@ -290,8 +519,10 @@ To create a handler, we call the ``error()`` method like so::
 
 The above results in::
 
+    ----------------------------------------------
     Outch progress...FAIL
     Ouch!
+    ----------------------------------------------
 
 The message may have a ``{err}`` placeholder, which gets replaced by the string
 representation of the exception that was raised in the block.
@@ -301,10 +532,9 @@ nothing. ::
 
     with cn.progress('No ouch', onerror: lambda exc: None):
         raise RuntimeError()
-
-This results in::
-
+    ----------------------------------------------
     No ouch...FAIL
+    ----------------------------------------------
 
 .. note::
     Note that passing ``None`` as ``onerror`` value simply causes the default
