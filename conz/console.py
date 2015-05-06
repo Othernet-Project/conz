@@ -10,218 +10,18 @@ file that comes with the source code, or http://www.gnu.org/licenses/gpl.txt.
 
 from __future__ import print_function
 
-import os
 import sys
 import signal
-import textwrap
 import contextlib
 
-
-__version__ = '0.3.dev1'
-__author__ = 'Outernet Inc'
-
-
-BORING_PLATFORMS = ['PocketPC', 'win32']
-COLS = os.getenv('COLUMNS', 79)
-
+from . import utils
+from . import progress
+from . import ansi_colors
 
 try:
     read = raw_input
 except NameError:
     read = input
-
-
-class ProgressEnd(Exception):
-    pass
-
-
-class ProgressOK(ProgressEnd):
-    pass
-
-
-class ProgressAbrt(ProgressEnd):
-    pass
-
-
-class Color:
-    COLORS = {
-        'black': '30',
-        'red': '31',
-        'green': '32',
-        'yellow': '33',
-        'blue': '34',
-        'purple': '35',
-        'cyan': '36',
-        'white': '37',
-    }
-
-    BACKGROUNDS = {
-        'black': '40',
-        'red': '41',
-        'green': '42',
-        'yellow': '43',
-        'blue': '44',
-        'purple': '45',
-        'cyan': '46',
-        'white': '47',
-    }
-
-    STYLES = {
-        'bold': '1',
-        'dim': '2',
-        'italic': '3',
-        'underline': '4',
-        'blink': '5',
-        'reverse': '7',
-    }
-
-    RESET = 0
-
-    @staticmethod
-    def _esc(code):
-        isatty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
-        if sys.platform in BORING_PLATFORMS or not isatty:
-            return ''
-        if os.getenv('ANSI_COLORS_DISABLED'):
-            return ''
-        return '\033[{}m'.format(code)
-
-    def _wrap(self, s, codes=[RESET]):
-        codes = ''.join(self._esc(c) for c in codes)
-        return '{}{}{}'.format(codes, s, self._esc(self.RESET))
-
-    def color(self, s, color='default', style=None, bg=None):
-        codes = []
-        fg = self.COLORS[color]
-        if style:
-            fg += ';' + self.STYLES[style]
-        codes.append(fg)
-        if bg:
-            codes.append(self.BACKGROUNDS[bg])
-        return self._wrap(s, codes)
-
-    def black(self, s, style=None, bg=None):
-        return self.color(s, 'black', style, bg)
-
-    def red(self, s, style=None, bg=None):
-        return self.color(s, 'red', style, bg)
-
-    def green(self, s, style=None, bg=None):
-        return self.color(s, 'green', style, bg)
-
-    def yellow(self, s, style=None, bg=None):
-        return self.color(s, 'yellow', style, bg)
-
-    def blue(self, s, style=None, bg=None):
-        return self.color(s, 'blue', style, bg)
-
-    def purple(self, s, style=None, bg=None):
-        return self.color(s, 'purple', style, bg)
-
-    def cyan(self, s, style=None, bg=None):
-        return self.color(s, 'cyan', style, bg)
-
-    def white(self, s, style=None, bg=None):
-        return self.color(s, 'white', style, bg)
-
-
-color = Color()
-
-
-def rewrap(s, width=COLS):
-    """ Join all lines from input string and wrap it at specified width """
-    s = ' '.join([l.strip() for l in s.strip().split('\n')])
-    return '\n'.join(textwrap.wrap(s, width))
-
-
-def rewrap_long(s, width=COLS):
-    """ Rewrap longer texts with paragraph breaks (two consecutive LF) """
-    paras = s.split('\n\n')
-    return '\n\n'.join(rewrap(p) for p in paras)
-
-
-def striplines(s):
-    """ Strip whitespace from each line of input string """
-    return '\n'.join([l.strip() for l in s.strip().split('\n')])
-
-
-def safeint(s):
-    """ Convert the string to int without raising errors """
-    try:
-        return int(s.strip())
-    except (TypeError, ValueError):
-        return None
-
-
-class Progress:
-    """
-    Wrapper that manages step progress
-    """
-
-    color = color
-
-    def __init__(self, printer, end='DONE', abrt='FAIL', prog='.'):
-        """
-        The ``Console`` method to be used is specified using the ``printer``
-        argument.
-
-        ``end`` argument specified the progress end banner. It defaults to
-        'DONE'.
-
-        The ``abrt`` argument specifies the abort banner, defaulting to 'FAIL'.
-
-        The ``prog`` argument specifies the character to be used as progress
-        indicator. It defaults to '.'.
-
-        The methods in this class all print using printer's ``pverb()`` method.
-        This can be changed by specifying a different method using the
-        ``mthod`` argument.
-        """
-        self.printer = printer
-        self.end_msg = end
-        self.prog_msg = prog
-        self.abrt_msg = abrt
-
-    def end(self, s=None, post=None, noraise=False):
-        """ Prints the end banner and raises ``ProgressOK`` exception
-
-        When ``noraise`` flag is set to ``True``, then the exception is not
-        raised, and progress is allowed to continue.
-
-        If ``post`` function is supplied it is invoked with no arguments after
-        the close banner is printed, but before exceptions are raised. The
-        ``post`` function takes no arguments.
-        """
-        s = s or self.end_msg
-        self.printer(self.color.green(s))
-        if post:
-            post()
-        if noraise:
-            return
-        raise ProgressOK()
-
-    def abrt(self, s=None, post=None, noraise=False):
-        """ Prints the abrt banner and raises ``ProgressAbrt`` exception
-
-        When ``noraise`` flag is set to ``True``, then the exception is not
-        raised, and progress is allowed to continue.
-
-        If ``post`` function is supplied it is invoked with no arguments after
-        the close banner is printed, but before exceptions are raised. The
-        ``post`` function takes no arguments.
-        """
-        s = s or self.abrt_msg
-        self.printer(self.color.red(s))
-        if post:
-            post()
-        if noraise:
-            return
-        raise ProgressAbrt()
-
-    def prog(self, s=None):
-        """ Prints the progress indicator """
-        s = s or self.prog_msg
-        self.printer(s, end='')
 
 
 class Console:
@@ -230,11 +30,11 @@ class Console:
     usage in console programs.
     """
 
-    ProgressEnd = ProgressEnd
-    ProgressOK = ProgressOK
-    ProgressAbrt = ProgressAbrt
+    ProgressEnd = progress.ProgressEnd
+    ProgressOK = progress.ProgressOK
+    ProgressAbrt = progress.ProgressAbrt
 
-    color = color
+    color = ansi_colors.color
 
     def __init__(self, verbose=False, stdout=sys.stdout, stderr=sys.stderr):
         """
@@ -319,7 +119,7 @@ class Console:
         with the same semantics.
         """
         if intro:
-            self.pstd(rewrap_long(intro))
+            self.pstd(utils.rewrap_long(intro))
         val = self.read(prompt, clean)
         while not validator(val):
             if not strict:
@@ -366,7 +166,7 @@ class Console:
              error='Invalid choice', intro=None, strict=True, default=None,
              formatter=lambda x, y: '{0:>3}) {1}'.format(x, y),
              numerator=lambda x: [i + 1 for i in range(x)],
-             clean=safeint):
+             clean=utils.safeint):
         """ Print a menu
 
         The choices must be an iterable of two-tuples where the first value is
@@ -409,7 +209,7 @@ class Console:
         values = [value for value, _ in choices]
         # Print intro and menu itself
         if intro:
-            self.pstd('\n' + rewrap_long(intro))
+            self.pstd('\n' + utils.rewrap_long(intro))
         for n, label in zip(numbers, labels):
             self.pstd(formatter(n, label))
         # Define the validator
@@ -488,25 +288,25 @@ class Console:
     @contextlib.contextmanager
     def progress(self, msg, onerror=None, sep='...', end='DONE', abrt='FAIL',
                  prog='.', excs=(Exception,), reraise=True):
-        """ Context manager for handling interactive progress indication
+        """ Context manager for handling interactive prog indication
 
-        This context manager streamlines presenting banners and progress
-        indicators. To start the progress, pass ``msg`` argument as a start
+        This context manager streamlines presenting banners and prog
+        indicators. To start the prog, pass ``msg`` argument as a start
         message. For example::
 
             printer = Console(verbose=True)
-            with printer.progress('Checking files') as progress:
+            with printer.progress('Checking files') as prog:
                 # Do some checks
                 if errors:
-                    progress.abrt()
-                progress.end()
+                    prog.abrt()
+                prog.end()
 
         The context manager returns a ``Progress`` instance, which provides
         methods like ``abrt()`` (abort), ``end()`` (end), and ``prog()`` (print
-        progress indicator).
+        prog indicator).
 
-        The progress methods like ``abrt()`` and ``end()`` will raise an
-        exception that interrupts the progress. These exceptions are
+        The prog methods like ``abrt()`` and ``end()`` will raise an
+        exception that interrupts the prog. These exceptions are
         ``ProgressEnd`` exception subclasses and are ``ProgressAbrt`` and
         ``ProgressOK`` respectively. They are silenced and not handled in any
         way as they only serve the purpose of flow control.
@@ -521,7 +321,7 @@ class Console:
         error handler. If string is passed, then ``error()`` factory is called
         with that string.
 
-        Finally, when progress is aborted either naturally or when exception is
+        Finally, when prog is aborted either naturally or when exception is
         raised, it is possible to reraise the ``ProgressAbrt`` exception. This
         is done using the ``reraise`` flag. Default is to reraise.
         """
@@ -530,20 +330,20 @@ class Console:
         if type(onerror) is str:
             onerror = self.error(msg=onerror)
         self.pverb(msg, end=sep)
-        progress = Progress(self.pverb, end=end, abrt=abrt, prog=prog)
+        prog = progress.Progress(self.pverb, end=end, abrt=abrt, prog=prog)
         try:
-            yield progress
-            progress.end()
-        except ProgressOK:
+            yield prog
+            prog.end()
+        except self.ProgressOK:
             pass
-        except ProgressAbrt as err:
+        except self.ProgressAbrt as err:
             if reraise:
                 raise err
         except KeyboardInterrupt:
             raise
         except excs as err:
-            progress.abrt(noraise=True)
+            self.abrt(noraise=True)
             if onerror:
                 onerror(err)
             if reraise:
-                raise ProgressAbrt()
+                raise self.ProgressAbrt()
