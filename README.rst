@@ -7,11 +7,12 @@ conz.
 
 conz has following features:
 
-- Manages signals (SIGINT and SIGPIPE)
 - Simplifies working with pipes
+- Provides methods for handling typical interactive scenarios
 - Supports output colorization
 - Provides tools for working with long-running tasks
 - Controls output in interactive and non-interactive scenarios
+- Manages signals (SIGINT and SIGPIPE)
 
 .. contents::
 
