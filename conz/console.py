@@ -183,7 +183,7 @@ class Console:
 
         The numbers used for the menu are generated using the numerator
         function which can be specified using the ``numerator`` function. This
-        funciton must take the number of choices and retrun the same number of
+        function must take the number of choices and return the same number of
         items that will be used as choice characters as a list.
 
         The cleaner function is passed to ``pvpl()`` method can be customized
@@ -199,7 +199,7 @@ class Console:
         selected. Each time an invalid selection is made, error message is
         printed. This message can be customized using ``error`` argument.
 
-        If ``strct`` argument is set, then only values in choices are allowed,
+        If ``strict`` argument is set, then only values in choices are allowed,
         otherwise any value will be allowed. The ``default`` argument can be
         used to define what value is returned in case user select an invalid
         value when strict checking is off.
@@ -272,7 +272,7 @@ class Console:
         string), then nothing is output to STDERR.
 
         The ``exit`` argument can be set to a non-zero value, in which case the
-        propgram quits after printing the message using its value as return
+        program quits after printing the message using its value as return
         value of the program.
 
         The returned function can be used with the ``progress()`` context
