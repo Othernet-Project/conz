@@ -216,7 +216,7 @@ class Console:
         validator = lambda x: x in numbers
         val = self.rvpl(prompt, error=error, validator=validator, clean=clean,
                         strict=strict, default=default)
-        if not strict:
+        if not strict and val == default:
             return val
         return values[numbers.index(val)]
 
