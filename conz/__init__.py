@@ -1,4 +1,4 @@
-__version__ = '0.4.dev1'
+__version__ = '0.4'
 __author__ = 'Outernet Inc'
 
 from .ansi_colors import color
