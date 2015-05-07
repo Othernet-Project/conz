@@ -17,6 +17,7 @@ BORING_PLATFORMS = ['PocketPC', 'win32']
 
 class Color:
     COLORS = {
+        'default': '0',
         'black': '30',
         'red': '31',
         'green': '32',
