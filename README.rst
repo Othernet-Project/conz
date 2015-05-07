@@ -512,6 +512,10 @@ callback is specified using ``onerror`` argument, and defaults to an error
 handler that prints 'Program error: ERROR MESSAGE' to STDERR. For convenience,
 the ``Console`` object has a ``error()`` method which creates such handlers.
 
+By default, the tracebacks raised during progress is suppressed. To see the
+full traceback, ``Console`` constructor takes a ``debug`` argument, which can
+be set to ``True`` to prevent traceback suppression.
+
 To create a handler, we call the ``error()`` method like so::
 
     handler = cn.error('Ouch!', exit=1)
