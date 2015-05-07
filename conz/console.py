@@ -12,6 +12,7 @@ from __future__ import print_function
 
 import sys
 import signal
+import traceback
 import contextlib
 
 from . import utils
@@ -36,7 +37,8 @@ class Console:
 
     color = ansi_colors.color
 
-    def __init__(self, verbose=False, stdout=sys.stdout, stderr=sys.stderr):
+    def __init__(self, verbose=False, stdout=sys.stdout, stderr=sys.stderr,
+                 debug=False):
         """
         ``verbose`` flag controls suppression of verbose outputs (those printed
         using ``pverb()`` method). The verbose output is usually a helpful
@@ -45,11 +47,15 @@ class Console:
 
         ``stdout`` and ``stderrr`` are the default STDOUT file for all
         ``print()`` calls.
+
+        To enable debugging (e.g., printing stack traces), use the ``debug``
+        argument and set it to ``True``.
         """
         self.verbose = verbose
         self.out = stdout
         self.err = stderr
         self.register_signals()
+        self.debug = debug
 
     def print(self, *args, **kwargs):
         """ Thin wrapper around print
@@ -345,5 +351,7 @@ class Console:
             prog.abrt(noraise=True)
             if onerror:
                 onerror(err)
+            if self.debug:
+                traceback.print_exc()
             if reraise:
                 raise self.ProgressAbrt()
