@@ -76,6 +76,18 @@ class Console:
         self.print(*args, **kwargs)
         sys.stderr.flush()
 
+    def pok(self, val, ok='OK'):
+        """ Print val: OK in green on STDOUT """
+        self.pstd(self.color.green('{}: {}'.format(val, ok)))
+
+    def png(self, val, ng='ERR'):
+        """ Print val: ERR in red on STDOUT """
+        self.pstd(self.color.red('{}: {}'.format(val, ng)))
+
+    def pwa(self, val, wa='WARN'):
+        """ Print val: WARN in yellow on STDOUT """
+        self.pstd(self.color.yellow('{}: {}'.format(val, wa)))
+
     def pverr(self, val, msg, *args, **kwargs):
         kwargs.setdefault('file', self.err)
         self.print('{}: {}'.format(val, msg), *args, **kwargs)
